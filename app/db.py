@@ -11,7 +11,7 @@ from fastapi_users.db import SQLAlchemyBaseUserTableUUID,SQLAlchemyUserDatabase
 from fastapi import Depends
 
 load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://fastapi_user:123456@localhost:5432/fastapi_db")
 
 
 
