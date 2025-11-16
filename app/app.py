@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from app.user import fastapi_users, auth_backend,current_active_user
 from app.schema import UserRead, UserCreate, UserUpdate
 from app.db import create_db_tables, get_async_session
+from fastapi.middleware.cors import CORSMiddleware
+
 load_dotenv()
 
 # Replace with your actual values
@@ -25,6 +27,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+
+
+# --- CORS CONFIG ---
+origins = [
+    "http://localhost:8081",      # React local dev
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,            # Allowed frontend domains
+    allow_credentials=True,
+    allow_methods=["*"],              # GET, POST, PUT, DELETE, etc.
+    allow_headers=["*"],
+)
 
 app.include_router(fastapi_users.get_auth_router(auth_backend), prefix="/auth/jwt", tags=["auth"])  
 app.include_router(
