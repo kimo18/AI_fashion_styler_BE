@@ -4,18 +4,24 @@ from dotenv import load_dotenv
 import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
-from app.user import fastapi_users, auth_backend,current_active_user
+from app.user import fastapi_users, auth_backend,current_active_user, google_oauth_client
 from app.schema import UserRead, UserCreate, UserUpdate
 from app.db import create_db_tables, get_async_session
 from fastapi.middleware.cors import CORSMiddleware
 
+
 load_dotenv()
 
-# Replace with your actual values
+# Load Secrets from .env
 SUPABASE_URL = os.getenv("SUPABASE_URL") 
 SUPABASE_KEY = os.getenv("SUPABASE_ANON") 
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+
+
 BUCKET = "FAShion"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,8 +32,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-
-
 
 # --- CORS CONFIG ---
 origins = [
@@ -54,6 +58,15 @@ app.include_router(
 )
 app.include_router(
     fastapi_users.get_users_router(UserRead, UserUpdate), prefix="/users", tags=["users"])
+
+#Google OAuth2 Routes
+
+app.include_router(
+    fastapi_users.get_oauth_router(google_oauth_client, auth_backend, "SECRET", redirect_url=GOOGLE_REDIRECT_URI),
+    prefix="/auth/google",
+    tags=["auth"],
+)
+
 
 
 # @app.post("/upload/")
