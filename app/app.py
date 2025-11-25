@@ -8,7 +8,7 @@ from app.user import fastapi_users, auth_backend,current_active_user, google_oau
 from app.schema import UserRead, UserCreate, UserUpdate
 from app.db import create_db_tables, get_async_session
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi import Depends, Request
 
 load_dotenv()
 
@@ -67,20 +67,10 @@ app.include_router(
     tags=["auth"],
 )
 
+from app.routes import clothes
+app.include_router(clothes.router, prefix="/clothes", tags=["clothes"])
 
 
-# @app.post("/upload/")
-# async def upload(file: UploadFile = File(...)):
-#     try:
-#         contents = await file.read()
-#         res = supabase.storage.from_(BUCKET).upload(file.filename, contents,file_options={"cache-control": "3600", "upsert": "true"})
-#         public_url = supabase.storage.from_(BUCKET).get_public_url(file.filename)
-#         return {"public_url": public_url}
 
-#     except Exception as e:
-#         return {"error": str(e)}
-
-    # if res.get("error"):
-    #     return {"error": res["error"]}
-    # else:    
-    #     
+       
+        

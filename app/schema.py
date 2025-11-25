@@ -1,4 +1,6 @@
 from fastapi_users import schemas
+from ENUMS.Clothes import Season ,Size
+from pydantic import BaseModel
 import uuid
 
 
@@ -8,3 +10,13 @@ class UserCreate(schemas.BaseUserCreate):
     pass
 class UserUpdate(schemas.BaseUserUpdate):
     pass
+
+
+class ClothCreate(BaseModel):
+    name: str
+    type: str | None
+    color: str | None
+    brand: str | None
+    size: Size | None
+    season: Season | None
+    image_url: str
