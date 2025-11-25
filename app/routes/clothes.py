@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status , Body
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
@@ -10,6 +10,8 @@ import uuid
 from app.schema import ClothCreate
 from app.db import Clothes
 from app.db import User
+
+
 router = APIRouter()
 
 # Supabase client setup
@@ -25,12 +27,33 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 @router.post("/upload/")
 async def upload_fit(
-    closet_schema: ClothCreate,
+    name: str,
+    type: str,
+    color: str,
+    brand: str,
+    size: str,
+    season: str,
     file: UploadFile = File(...),
     user: UserRead = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session)
 ):
     # 1. Upload file to Supabase
+    try:
+        closet_schema = ClothCreate(
+        name=name,
+        type=type,
+        color=color,
+        brand=brand,
+        size=size,
+        season=season
+    )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"error": f"Invalid input data: {str(e)}"}
+        )    
+
+
     try:
         contents = await file.read()
         unique_filename = f"{uuid.uuid4()}_{file.filename}"
@@ -57,12 +80,12 @@ async def upload_fit(
 
         new_fit = Clothes(
             user_id=user.id,
-            name=ClosetRead.name,
-            type=ClosetRead.type,
-            color=ClosetRead.color,
-            brand=ClosetRead.brand,
-            size=ClosetRead.size,
-            season=ClosetRead.season,
+            name=closet_schema.name,
+            type=closet_schema.type,
+            color=closet_schema.color,
+            brand=closet_schema.brand,
+            size=closet_schema.size,
+            season=closet_schema.season,
             image_url=public_url,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
