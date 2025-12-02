@@ -29,7 +29,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 async def lifespan(app: FastAPI):
     # Startup code
     await create_db_tables()
-    app.state.redis_pending_uploads = redis.from_url("redis://localhost:6379", encoding="utf8", decode_responses=True)
+    app.state.redis_pending_uploads = redis.from_url(os.getenv("REDISPENDINGUPLOAD", "postgresql+asyncpg://fastapi_user:123456@localhost:5432/fastapi_db"), encoding="utf8", decode_responses=True)
     yield
     # Shutdown code
 

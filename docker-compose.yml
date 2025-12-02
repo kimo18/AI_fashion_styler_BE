@@ -13,6 +13,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
 
+  redis:
+    image: redis:7  # latest Redis image
+    restart: always
+    ports:
+      - "6379:6379"  # default Redis port
+    command: ["redis-server", "--save", "", "--appendonly", "no"]  # optional: disable persistence
+
   backend:
     build: .
     container_name: fastapi_app
@@ -21,6 +28,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://fastapi_user:123456@db:5432/fastapi_db
+      REDISPENDINGUPLOAD: redis://redis:6379/0
     depends_on:
       - db
 

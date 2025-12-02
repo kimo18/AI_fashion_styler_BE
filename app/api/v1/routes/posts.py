@@ -23,7 +23,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 
-async def process_clothes_ai(user_id: str, post_id: int , r: redis.Redis=Depends(get_user_pending_uploads)):
+async def process_clothes_ai(user_id: str, post_id: int , r):
     pending_uploads = await r.hgetall(f"{user_id}")
     print(pending_uploads)
 
@@ -39,6 +39,7 @@ async def upload_fit(
     background_tasks: BackgroundTasks,
     user: UserRead = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
+    r: redis.Redis=Depends(get_user_pending_uploads)
     
 ):
     
@@ -63,7 +64,8 @@ async def upload_fit(
     background_tasks.add_task(
             process_clothes_ai,
             user_id=user.id,
-            post_id=new_post.id
+            post_id=new_post.id,
+            r=r
         )
   
     

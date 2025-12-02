@@ -14,7 +14,7 @@ from sqlalchemy import Enum
 from ENUMS.Clothes import Season ,Size
 
 load_dotenv()
-DATABASE_URL = DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://fastapi_user:123456@localhost:5432/fastapi_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://fastapi_user:123456@localhost:5432/fastapi_db")
 
 class Base(DeclarativeBase):
     pass
