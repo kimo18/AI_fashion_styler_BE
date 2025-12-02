@@ -44,8 +44,8 @@ class User(SQLAlchemyBaseUserTableUUID,Base):
 postimage_clothes = Table(
     "PostImageClothes",
     Base.metadata,
-    Column("post_image_id", Integer, ForeignKey("PostImages.id"), primary_key=True),
-    Column("clothes_id", Integer, ForeignKey("Clothes.id"), primary_key=True)
+    Column("post_image_id", UUID(as_uuid=True), ForeignKey("PostImages.id"), primary_key=True),
+    Column("clothes_id", UUID(as_uuid=True), ForeignKey("Clothes.id"), primary_key=True)
 )
 
 
@@ -55,7 +55,7 @@ postimage_clothes = Table(
 class Clothes(Base):
     __tablename__ = "Clothes"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"))
     user = relationship("User", back_populates="clothes")
     name = Column(String, index=True)
@@ -75,12 +75,12 @@ class Clothes(Base):
 class Posts(Base):
     __tablename__ = "Posts"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True,default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"))
-    title = Column(String, index=True)
-    content = Column(String)
+    description = Column(String)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
+    pending = Column(Boolean, default=True)
     user = relationship("User",back_populates="posts")
     images: Mapped[list["PostImages"]] = relationship(
         "PostImages",
@@ -91,8 +91,8 @@ class Posts(Base):
 
 class PostImages(Base):
     __tablename__ = "PostImages"
-    id = Column(Integer, primary_key=True)
-    post_id = Column(Integer, ForeignKey("Posts.id"))
+    id = Column(UUID(as_uuid=True), primary_key=True,default=uuid.uuid4)
+    post_id = Column(UUID(as_uuid=True), ForeignKey("Posts.id"),nullable=False)
     url = Column(String, nullable=False)
 
     # Back reference

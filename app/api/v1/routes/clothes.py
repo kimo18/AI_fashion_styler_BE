@@ -2,12 +2,11 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status 
 from typing import Annotated , List
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
-from app.schema import UserRead
+from app.api.v1.schemas.schema import UserRead ,ClothCreate
 from app.user import current_active_user
 from app.db import create_db_tables, get_async_session
 from supabase import create_client, Client
 import uuid
-from app.schema import ClothCreate ,PostSchema,PostImageMetadata,PostClothesMetadata
 from app.db import Clothes
 from app.db import User
 
@@ -25,10 +24,6 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 
-@router.post("/test")
-async def test_endpoint(data:str, type:list[PostImageMetadata] = Form(...),name:list[str] = Form(...), image_id:list[int] = Form(...)):
-    return {"status": "success", "message": "Clothes route is working!"}
-
 
 
 
@@ -38,31 +33,7 @@ async def upload_fit(
     user: UserRead = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session)
 ):
-    # 1. Upload file to Supabase
-      
-
-
-    try:
-        contents = await data.file.read()
-        unique_filename = f"{uuid.uuid4()}_{data.file.filename}"
-        supabase_res = supabase.storage.from_(BUCKET).upload(
-            unique_filename,
-            contents,
-            file_options={"cache-control": "3600", "upsert": "true"}
-        )
-
-        # Supabase returns error as dict sometimes, catch that:
-        if hasattr(supabase_res, "error") and supabase_res.error:
-            raise Exception(supabase_res.error)
-
-        public_url = supabase.storage.from_(BUCKET).get_public_url(data.file.filename)
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"error": f"Supabase Upload Error: {str(e)}"}
-        )
-
+     
     # 2. Save record in database
     try:
 
@@ -74,7 +45,7 @@ async def upload_fit(
             brand=data.brand,
             size=data.size,
             season=data.season,
-            image_url=public_url,
+            image_url=data.image_url,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -86,7 +57,7 @@ async def upload_fit(
         return {"status": "success", "clothes_id": new_fit.id}
 
     except Exception as e:
-        supabase.storage.from_(BUCKET).remove([unique_filename])
+        # supabase.storage.from_(BUCKET).remove([unique_filename])
         await session.rollback()
 
         raise HTTPException(

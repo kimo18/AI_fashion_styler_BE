@@ -5,10 +5,12 @@ import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
 from app.user import fastapi_users, auth_backend,current_active_user, google_oauth_client
-from app.schema import UserRead, UserCreate, UserUpdate
+from app.api.v1.schemas.schema import UserRead, UserCreate, UserUpdate
 from app.db import create_db_tables, get_async_session
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Depends, Request
+import redis.asyncio as redis
+
 
 load_dotenv()
 
@@ -27,11 +29,16 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 async def lifespan(app: FastAPI):
     # Startup code
     await create_db_tables()
+    app.state.redis_pending_uploads = redis.from_url("redis://localhost:6379", encoding="utf8", decode_responses=True)
     yield
     # Shutdown code
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+    
+
 
 # --- CORS CONFIG ---
 origins = [
@@ -67,10 +74,14 @@ app.include_router(
     tags=["auth"],
 )
 
-from app.routes import clothes
-app.include_router(clothes.router, prefix="/clothes", tags=["clothes"])
 
+version = "v1"
+from app.api.v1.routes import clothes as clothes_v1
+app.include_router(clothes_v1.router, prefix=f"/{version}/clothes", tags=[f"clothes_{version}"])
 
-
+from app.api.v1.routes import supabasegen as supabasegen_v1
+app.include_router(supabasegen_v1.router, prefix=f"/{version}/supabasegen", tags=[f"supabasegen_{version}"])
+from app.api.v1.routes import posts as posts_v1
+app.include_router(posts_v1.router, prefix=f"/{version}/posts", tags=[f"posts_{version}"])
        
         
