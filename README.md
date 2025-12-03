@@ -13,6 +13,7 @@ It provides all backend API endpoints, authentication, and database communicatio
 - **Uvicorn**
 - **Docker & Docker Compose**
 - **Async SQL (asyncpg)**
+- **Redis**
 
 ---
 
@@ -52,6 +53,7 @@ docker-compose up --build
 ```
 
 HAVE fun little Mnhy
+
 
 
 
