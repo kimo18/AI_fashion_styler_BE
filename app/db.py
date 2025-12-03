@@ -55,7 +55,7 @@ postimage_clothes = Table(
 class Clothes(Base):
     __tablename__ = "Clothes"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True,default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"))
     user = relationship("User", back_populates="clothes")
     name = Column(String, index=True)

@@ -22,7 +22,6 @@ class ClothCreate(BaseModel):
     size: Size | None
     season: Season | None 
     is_cloth: bool 
-    image_url: str
     # class Config:
     #     orm_mode = True
 

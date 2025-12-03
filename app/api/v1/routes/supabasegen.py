@@ -65,7 +65,7 @@ async def get_upload_urls(post: PostRequest , user: UserRead = Depends(current_a
         storage_path,urls[f"{image_count}"] = generate_supabase_signed_url(unique_filename)
         key = f"{user.id}"
         await r.hset(f"{user.id}", unique_filename, storage_path)
-        await r.expire(f"{user.id}", 3600)
+        await r.expire(f"{user.id}", 300)  # Set expiration time to 5 minutes (300 seconds)
        
         image_count += 1
     return {"urls": urls}

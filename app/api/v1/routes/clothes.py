@@ -9,7 +9,8 @@ from supabase import create_client, Client
 import uuid
 from app.db import Clothes
 from app.db import User
-
+import redis as redis
+from app.redis import get_user_pending_uploads
 
 router = APIRouter()
 
@@ -29,13 +30,24 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 @router.post("/upload/")
 async def upload_fit(
-    data:ClothCreate = Form(..., media_type="multipart/form-data"),
+    data:ClothCreate,
     user: UserRead = Depends(current_active_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_async_session),
+    r: redis.Redis=Depends(get_user_pending_uploads)
 ):
      
     # 2. Save record in database
     try:
+        pending_uploads = await r.hgetall(f"{user.id}")
+        #check if pending is only 1 size
+        if len(pending_uploads) != 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": "Please upload exactly one image for the cloth."}
+            )
+        #get the only image url
+        image_url = list(pending_uploads.values())[0]
+        print(image_url)
 
         new_fit = Clothes(
             user_id=user.id,
@@ -45,7 +57,7 @@ async def upload_fit(
             brand=data.brand,
             size=data.size,
             season=data.season,
-            image_url=data.image_url,
+            image_url=image_url,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
