@@ -94,3 +94,30 @@ async def list_clothes(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"error": f"Database Error: {str(e)}"}
         )
+@router.delete("/{cloth_id}")
+async def delete_cloth(
+    cloth_id: uuid.UUID,
+    user: UserRead = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    try:
+        cloth = await session.get(Clothes, cloth_id)
+
+        if not cloth or cloth.user_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"error": "Cloth not found."}
+            )
+
+        await session.delete(cloth)
+        await session.commit()
+
+        return {"status": "success", "message": "Cloth deleted successfully."}
+
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": f"Database Error: {str(e)}"}
+        )
+
