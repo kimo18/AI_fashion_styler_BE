@@ -33,5 +33,5 @@ def generate_supabase_signed_url(file_name: str):
             status_code=response.status_code,
             detail=response.text
         )
-
+    url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET}/{file_name}"
     return url ,response.json()    
