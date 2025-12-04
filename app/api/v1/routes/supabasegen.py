@@ -11,64 +11,35 @@ from app.redis import get_user_pending_uploads
 import redis.asyncio as redis
 import requests
 from pydantic import BaseModel
-router = APIRouter()
+from services.registry import UPLOAD_STRATEGIES
 
-# Supabase client setup
-from dotenv import load_dotenv
-import os
-load_dotenv()
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_ANON")
-BUCKET = "FAShion"
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-
-
-
-
-
-
-class PostImage(BaseModel):
+class FileUpload(BaseModel):
     file_name: str
 
-class PostRequest(BaseModel):
-    images: List[PostImage]
+class UploadRequest(BaseModel):
+    type: str
+    images: List[FileUpload]
 
 
-
-def generate_supabase_signed_url(file_name: str):
-    url = f"{SUPABASE_URL}/storage/v1/object/upload/sign/{BUCKET}/{file_name}"
-
-    headers = {
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
-    response = requests.post(url, headers=headers, json={})
-
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=response.text
-        )
-
-    return url ,response.json()
+router = APIRouter()
 
 
 @router.post("/generate-upload-urls/")
-async def get_upload_urls(post: PostRequest , user: UserRead = Depends(current_active_user) , r: redis.Redis=Depends(get_user_pending_uploads)):
+async def get_upload_urls(uploads_req: UploadRequest , user: UserRead = Depends(current_active_user) , r: redis.Redis=Depends(get_user_pending_uploads)):
     urls = {}
-    image_count = 0
-    for img in post.images:
-        print("hi")
-        unique_filename = f"{uuid.uuid4()}_{img.file_name}"
-        storage_path,urls[f"{image_count}"] = generate_supabase_signed_url(unique_filename)
-        key = f"{user.id}"
-        await r.hset(f"{user.id}", unique_filename, storage_path)
-        await r.expire(f"{user.id}", 300)  # Set expiration time to 5 minutes (300 seconds)
-       
-        image_count += 1
+    if not uploads_req.images:
+        raise HTTPException(status_code=400, detail={"error": "No images provided"})
+
+    strategy = UPLOAD_STRATEGIES.get(uploads_req.type)
+    if not strategy:
+        raise HTTPException(status_code=400, detail={"error": "Invalid upload type"})
+
+    await strategy.validate(uploads_req)
+
+    urls = await strategy.process(uploads_req, user, r)
+
     return {"urls": urls}
+ 
 
 
 

@@ -5,25 +5,44 @@ from datetime import datetime
 from app.api.v1.schemas.schema import UserRead ,ClothCreate
 from app.user import current_active_user
 from app.db import create_db_tables, get_async_session
-from supabase import create_client, Client
 import uuid
 from app.db import Clothes
 from app.db import User
 import redis as redis
 from app.redis import get_user_pending_uploads
+from services.Strategies.uploadstratgies import UploadStrategy,generate_supabase_signed_url
+from services.registry import UPLOAD_STRATEGIES
 
 router = APIRouter()
 
 # Supabase client setup
-from dotenv import load_dotenv
-import os
-load_dotenv()
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_ANON")
-BUCKET = "FAShion"
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
+
+
+class ClothUploadStrategy(UploadStrategy):
+    key_name = "clothes_uploads"
+
+    async def validate(self, uploads_req):
+        if len(uploads_req.images) != 1:
+            raise HTTPException(
+                status_code=400,
+                detail={"error": "Please provide exactly one image for cloth upload."}
+            )
+
+    async def process(self, uploads_req, user, r):
+        urls = {}
+        for i, img in enumerate(uploads_req.images):
+            unique_filename = f"{uuid.uuid4()}_{img.file_name}"
+            storage_path, signed_url = generate_supabase_signed_url(unique_filename)
+
+            await r.hset(f"{user.id}_{self.key_name}", unique_filename, storage_path)
+            await r.expire(f"{user.id}_{self.key_name}", 300)
+
+            urls[str(i)] = signed_url
+        return urls
+
+UPLOAD_STRATEGIES["clothes"] = ClothUploadStrategy()
 
 
 
@@ -38,7 +57,7 @@ async def upload_fit(
      
     # 2. Save record in database
     try:
-        pending_uploads = await r.hgetall(f"{user.id}")
+        pending_uploads = await r.hgetall(f"{user.id}_clothes_uploads")
         #check if pending is only 1 size
         if len(pending_uploads) != 1:
             raise HTTPException(
@@ -65,6 +84,9 @@ async def upload_fit(
         session.add(new_fit)
         await session.commit()
         await session.refresh(new_fit)
+
+        # Clear pending uploads from Redis
+        await r.delete(f"{user.id}_clothes_uploads")
 
         return {"status": "success", "clothes_id": new_fit.id}
 
@@ -94,6 +116,7 @@ async def list_clothes(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"error": f"Database Error: {str(e)}"}
         )
+    
 @router.delete("/{cloth_id}")
 async def delete_cloth(
     cloth_id: uuid.UUID,

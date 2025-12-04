@@ -5,31 +5,42 @@ from datetime import datetime
 from app.api.v1.schemas.schema import UserRead ,PostSchema
 from app.user import current_active_user
 from app.db import  get_async_session ,Posts,PostImages
-from supabase import create_client, Client
+from services.Strategies.uploadstratgies import UploadStrategy,generate_supabase_signed_url
 import asyncio 
 import uuid
 import redis as redis
 from app.redis import get_user_pending_uploads
+from services.registry import UPLOAD_STRATEGIES
 router = APIRouter()
 
-# Supabase client setup
-from dotenv import load_dotenv
-import os
-load_dotenv()
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_ANON")
-BUCKET = "FAShion"
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+class PostUploadStrategy(UploadStrategy):
+    key_name = "post_uploads"
+
+    async def validate(self, uploads_req):
+        pass  # no special validation
+
+    async def process(self, uploads_req, user, r):
+        urls = {}
+        for i, img in enumerate(uploads_req.images):
+            unique_filename = f"{uuid.uuid4()}_{img.file_name}"
+            storage_path, signed_url = generate_supabase_signed_url(unique_filename)
+
+            await r.hset(f"{user.id}_{self.key_name}", unique_filename, storage_path)
+            await r.expire(f"{user.id}_{self.key_name}", 300)
+
+            urls[str(i)] = signed_url
+        return urls
+
+UPLOAD_STRATEGIES["posts"] = PostUploadStrategy()
 
 
 
 async def process_clothes_ai(user_id: str, post_id: int , r):
-    pending_uploads = await r.hgetall(f"{user_id}")
+    pending_uploads = await r.hgetall(f"{user_id}_post_uploads")
     print(pending_uploads)
-
-    # Your long-running AI code
-    # Example:
-    await asyncio.sleep(10)
+    await r.delete(f"{user_id}_clothes_uploads")
+    # await asyncio.sleep(10)
     print(f"Processing clothes AI for image: {user_id}")
 
 
