@@ -1,48 +1,34 @@
-from fastapi import FastAPI, Request, HTTPException, UploadFile, File
-import redis.asyncio as redis
-import time
-
-app = FastAPI()
-
-# --- SETTINGS ---
-MAX_IMAGES_PER_HOUR = 100
-WINDOW = 3600  # 1 hour
-
-@app.on_event("startup")
-async def startup():
-    app.state.redis = redis.from_url("redis://localhost:6379", encoding="utf8", decode_responses=True)
 
 
-# replace with real JWT user
-def get_user_id(request: Request):
-    return request.headers.get("x-user-id", "anonymous")
+
+dict_leaf = {}
+dict_nodes = {}
 
 
-async def check_image_limit(user_id: str, images_count: int):
-    r = app.state.redis
-    key = f"user:{user_id}:image_count"
-    
-    current = await r.get(key)
-    current = int(current) if current else 0
 
-    if current + images_count > MAX_IMAGES_PER_HOUR:
-        raise HTTPException(429, "Image upload limit (100 per hour) exceeded.")
+def func_leaf(heap):
+    sum = 0
+    for (x,y) in heap:
+        dict_leaf[y] = 0
+        dict_nodes[x] = 0
 
-    # Increase count and set expiry if new key
-    if current == 0:
-        await r.set(key, images_count, ex=WINDOW)
-    else:
-        await r.incrby(key, images_count)
+    for k in dict_nodes.keys():
+        sub_sum = 0
+        for i in range(len(heap)):
+            if heap[i][0] == k:
+                if k > heap[i][1]:
+                    sub_sum += 1
+                else:
+                    sub_sum = sub_sum -1   
+
+        if sub_sum >1:
+            sum =sum+1    
+
+    sum = sum +(len(list(dict_leaf))-len(list(dict_nodes))+1)
+
+    return sum                   
 
 
-@app.post("/post")
-async def create_post(
-    request: Request,
-    images: list[UploadFile] = File(...)
-):
-    user_id = get_user_id(request)
-    num_images = len(images)
+input = [(70,35),(35,20),(35,10),(70,60),(60,50),(60,30)]
 
-    await check_image_limit(user_id, num_images)
-
-    return {"message": f"Post created with {num_images} images"}
+print(func_leaf(input))

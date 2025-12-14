@@ -39,6 +39,23 @@ class User(SQLAlchemyBaseUserTableUUID,Base):
         back_populates="user",
         lazy="selectin"     # <-- BEST OPTION
     )
+    images: Mapped[list["UserImages"]] = relationship(
+        "UserImages",
+        back_populates="user",
+        lazy="selectin"     # <-- BEST OPTION
+    )
+
+
+
+class UserImages(Base):
+    __tablename__ = "UserImages"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True,default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"))
+    url = Column(String, nullable=False)
+    created_at = Column(DateTime)
+    user = relationship("User", back_populates="images")
+
 
 ####### Association Table between PostImage and Clothes ###########
 postimage_clothes = Table(
@@ -68,6 +85,7 @@ class Clothes(Base):
     size = Column(Enum(Size),nullable=True)
     season = Column(Enum(Season), nullable=False)
     image_url = Column(String)
+    description = Column(String, nullable=False)
     post_images = relationship("PostImages", secondary = postimage_clothes, back_populates="clothes",lazy="selectin")
 
 

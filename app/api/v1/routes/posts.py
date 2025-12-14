@@ -37,9 +37,12 @@ UPLOAD_STRATEGIES["posts"] = PostUploadStrategy()
 
 
 async def process_clothes_ai(user_id: str, post_id: int , r):
+
+    #validate the post images, if exists and if they follow the guidelines
+    
     pending_uploads = await r.hgetall(f"{user_id}_post_uploads")
     print(pending_uploads)
-    await r.delete(f"{user_id}_clothes_uploads")
+    await r.delete(f"{user_id}_post_uploads")
     # await asyncio.sleep(10)
     print(f"Processing clothes AI for image: {user_id}")
 
